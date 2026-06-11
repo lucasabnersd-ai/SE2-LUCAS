@@ -1,0 +1,27 @@
+# ===== Arquivos LOCAIS — nao publicar no GitHub =====
+backups/
+files/
+
+# Variantes de backup/recuperacao do index.html (pesadas)
+*.bak
+*.tmp
+index.html.bak*
+index.html.before*
+index.html.rec*
+index.html.recover*
+index.html.recovery*
+index.html.trim*
+
+# Dados-fonte grandes: ja estao embutidos (inline) no index.html -> redundante
+datos.js
+
+# Backups/estado gerados localmente
+backup_conciliacao_*.json
+se2_estado.json
+
+# Documentos avulsos
+*.pdf
+
+# Sistema operacional
+.DS_Store
+Thumbs.db

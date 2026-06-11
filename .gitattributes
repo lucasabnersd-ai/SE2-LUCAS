@@ -1,0 +1,4 @@
+# Evita que o git normalize fim de linha nos arquivos grandes gerados
+*.html -text
+*.js   -text
+*.json -text
