@@ -100,7 +100,6 @@ function copyToClipboard(btn, field){
 function copyUUID(btn){ copyToClipboard(btn, 'uuid'); }
 function copyNatureza(btn){ copyToClipboard(btn, 'natureza'); }
 function copyFornec(btn){ copyToClipboard(btn, 'codfornec'); }
-function copyBordero(btn){ copyToClipboard(btn, 'bordero'); }
 // AJUSTE FILTRO EMPRESA: extrai todas as relacoes filial+empresa da base SE2
 function companyPairKey(filial, empresa){ return `${String(filial||'').trim()}|${String(empresa||'').trim()}`; }
 function companyPairFromRow(r){ return companyPairKey(r?.filial, r?.empresa); }
@@ -1339,7 +1338,7 @@ function downloadMON(){
 }
 
 // Ordenação por clique no cabeçalho
-const SORT_MAP = ['','','empresa','tipo','num','parcela','razao','fornecedor','codFornec','emissao','vencimento','vencReal','valor','saldo','status','natureza','baixa','historico','valLiqBaix','dtLiberacao','tipoPgto','cnpj','uuid',''];
+const SORT_MAP = ['','empresa','tipo','num','parcela','razao','fornecedor','codFornec','emissao','vencimento','vencReal','valor','saldo','status','natureza','baixa','historico','valLiqBaix','numBordero','dtBordero','dtLiberacao','tipoPgto','cnpj','uuid','usrIncName','usrIncDate','usrAltName','usrAltDate',''];
 let sortKey=null, sortAsc=true;
 const PAGE_SIZE = 300;
 let currentPage = 1;
@@ -1402,7 +1401,6 @@ function render(resetPage=false){
   document.getElementById('tb').innerHTML = pageRows.map(r=>`
     <tr>
       <td><input type="checkbox" class="rcb" data-id="${r.id}"></td>
-      <td style="text-align:center"><button type="button" class="det-btn" onclick="toggleDet(${r.id},this)" title="Ver detalhes do título">▸</button></td>
       <td class="filemp" style="white-space:nowrap">${r.empresa||r.filial}</td>
       <td>${r.tipo}</td><td>${r.num}</td><td>${r.parcela||'—'}</td>
       <td title="${r.razao}" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.razao}</td>
@@ -1415,11 +1413,16 @@ function render(resetPage=false){
       <td>${fmtDt(r.baixa)}</td>
       <td style="max-width:220px;font-size:11px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.historico}">${r.historico}</td>
       <td class="num">${fmtBR(r.valLiqBaix)}</td>
+      <td>${r.numBordero||'—'}</td><td>${fmtDt(r.dtBordero)}</td>
       <td>${fmtDt(r.dtLiberacao)}</td><td>${r.tipoPgto||'—'}</td>
       <td style="font-family:monospace;font-size:11px">${r.cnpj||'—'}</td>
       <td style="text-align:center">${r.uuid?`<button type="button" class="uuid-copy-btn" data-uuid="${escHtml(r.uuid)}" onclick="copyUUID(this)" title="Copiar UUID">📋 Copiar</button>`:'—'}</td>
+      <td style="font-size:11px;color:#334155" title="${escHtml(r.usrInc||'')}">${escHtml(splitUserDate(r.usrInc).name)}</td>
+      <td style="font-size:11px;color:#64748b">${splitUserDate(r.usrInc).date||'—'}</td>
+      <td style="font-size:11px;color:#334155" title="${escHtml(r.usrAlt||'')}">${escHtml(splitUserDate(r.usrAlt).name)}</td>
+      <td style="font-size:11px;color:#64748b">${splitUserDate(r.usrAlt).date||'—'}</td>
       <td><div style="display:flex;gap:4px"><button class="ab-pg" onclick="sendPag(${r.id})" title="Enviar para pagamento">💰</button><button class="ab-mn" onclick="openMonitor(${r.id})" title="Monitorar">📌</button></div></td>
-    </tr>${buildDetRow(r)}`).join('');
+    </tr>`).join('');
   document.getElementById('cnt').textContent = `${d.length} de ${DATA.length} títulos`;
   document.getElementById('b-all').textContent = DATA.length;
   document.getElementById('pager').innerHTML = `
@@ -1431,27 +1434,6 @@ function render(resetPage=false){
   `;
   renderAlertsTop();
   updateSelCounter('all');
-}
-
-// === Dropdown de detalhes por título (aba Todos os Títulos) ===
-function buildDetRow(r){
-  const i=splitUserDate(r.usrInc), alt=splitUserDate(r.usrAlt);
-  const multa=Number(r.multa)||0, juros=Number(r.juros)||0;
-  return `<tr class="det-row" id="det-${r.id}" style="display:none"><td colspan="24">
-    <div class="det-grid">
-      <div class="det-grp"><span class="det-grp-t">👤 Inclusão</span><div class="det-item"><span class="det-l">Nome Inc</span><span class="det-v">${escHtml(i.name)||'—'}</span></div><div class="det-item"><span class="det-l">Data Inc</span><span class="det-v">${i.date||'—'}</span></div></div>
-      <div class="det-grp"><span class="det-grp-t">✏️ Alteração</span><div class="det-item"><span class="det-l">Nome Alt</span><span class="det-v">${escHtml(alt.name)||'—'}</span></div><div class="det-item"><span class="det-l">Data Alt</span><span class="det-v">${alt.date||'—'}</span></div></div>
-      <div class="det-grp"><span class="det-grp-t">📋 Borderô</span><div class="det-item"><span class="det-l">Nº Borderô</span><span class="det-v">${r.numBordero?`<button type="button" class="copy-mini" data-bordero="${escHtml(r.numBordero)}" onclick="copyBordero(this)" title="Copiar Nº Borderô: ${escHtml(r.numBordero)}">${escHtml(r.numBordero)} 📋</button>`:'—'}</span></div><div class="det-item"><span class="det-l">Dt. Borderô</span><span class="det-v">${fmtDt(r.dtBordero)}</span></div></div>
-      <div class="det-grp"><span class="det-grp-t">✅ Baixa</span><div class="det-item"><span class="det-l">Val. Líq. Baixa</span><span class="det-v">${fmtBR(r.valLiqBaix||0)}</span></div><div class="det-item"><span class="det-l">Dt. Baixa</span><span class="det-v">${fmtDt(r.baixa)}</span></div></div>
-      <div class="det-grp det-grp-enc"><span class="det-grp-t">💰 Encargos</span><div class="det-item"><span class="det-l">Multa</span><span class="det-v det-multa">${fmtBR(multa)}</span></div><div class="det-item"><span class="det-l">Juros</span><span class="det-v det-juros">${fmtBR(juros)}</span></div><div class="det-item"><span class="det-l">Multa + Juros</span><span class="det-v det-total">${fmtBR(multa+juros)}</span></div></div>
-    </div></td></tr>`;
-}
-function toggleDet(id,btn){
-  const row=document.getElementById('det-'+id);
-  if(!row) return;
-  const open=row.style.display==='none';
-  row.style.display=open?'':'none';
-  if(btn){ btn.textContent=open?'▾':'▸'; btn.classList.toggle('on',open); }
 }
 
 function setPage(p){
