@@ -6,6 +6,7 @@ files/
 *.bak
 *.tmp
 index.html.bak*
+app.js.bak*
 index.html.before*
 index.html.rec*
 index.html.recover*
