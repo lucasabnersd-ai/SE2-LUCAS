@@ -198,18 +198,36 @@
     carregado = true;
   }
 
-  async function salvar() {
-    if (!sb || !sessionUser || !carregado) return;
+  async function salvar(forcar) {
+    if (!sb || !sessionUser || !carregado) {
+      if (forcar) throw new Error('Faca login e aguarde a sincronizacao inicial.');
+      return;
+    }
     var est = buildEstado();
     var js = JSON.stringify(est);
-    if (js === lastSavedJson) return;
-    status('Salvando…');
+    if (!forcar && js === lastSavedJson) return { ok: true, unchanged: true };
+    status(forcar ? 'Fixando estado…' : 'Salvando…');
     var r = await sb.from('se2_estado').upsert({ id: ROW_ID, estado: est, atualizado_por: sessionUser.email });
-    if (r.error) { status('Erro ao salvar', '#b91c1c'); console.error('[supa] salvar', r.error); return; }
+    if (r.error) {
+      status('Erro ao salvar', '#b91c1c');
+      console.error('[supa] salvar', r.error);
+      if (forcar) throw r.error;
+      return { ok: false, error: r.error };
+    }
     lastSavedJson = js;
-    status('Salvo ' + new Date().toLocaleTimeString('pt-BR'));
+    status((forcar ? 'Fixado ' : 'Salvo ') + new Date().toLocaleTimeString('pt-BR'));
+    return { ok: true, estado: est };
   }
   function agendarSalvar() { clearTimeout(saveTimer); saveTimer = setTimeout(salvar, 8000); }
+
+  window.SE2_SUPABASE = {
+    salvarAgora: function () {
+      clearTimeout(saveTimer);
+      return salvar(true);
+    },
+    usuario: function () { return sessionUser; },
+    pronto: function () { return !!(sb && sessionUser && carregado); }
+  };
 
   // O app chama salvarEstado() apos cada alteracao (originalmente vazio).
   window.salvarEstado = function () { agendarSalvar(); };
